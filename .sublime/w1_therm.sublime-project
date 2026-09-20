@@ -1,0 +1,20 @@
+{
+    "folders": [
+        {
+            "path": "..",
+            "file_exclude_patterns": ["Cargo.lock"],
+            "folder_exclude_patterns": ["target"],
+            "binary_file_patterns": ["*/target/*"],
+        }
+    ],
+    "build_systems": [],
+    "settings": {
+        "cargo_build": {
+            "variants": {
+                "test": {
+                    "features": "ALL",
+                }
+            },
+        },
+    },
+}

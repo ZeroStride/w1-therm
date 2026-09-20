@@ -1,0 +1,31 @@
+[package]
+name = "w1_therm"
+version = "0.1.0"
+description = "Reading from w1_therm compatible sensors under Linux"
+authors = ["Ezri Coniglio"]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/ZeroStride/w1-therm"
+
+exclude = [
+    ".sublime/*",
+    "rustfmt.toml",
+    ".gitignore",
+    "Cargo.lock",
+    ".editorconfig",
+]
+
+[dependencies]
+rust_decimal = { version = "1.43.0", default-features = false, optional = true }
+thiserror = "2.0.20"
+
+[dev-dependencies]
+indoc = "2.0.7"
+rust_decimal = { version = "1.43.0", default-features = false, features = ["macros"]}
+
+[features]
+default = []
+rust_decimal = ["dep:rust_decimal"]
+
+[lints]

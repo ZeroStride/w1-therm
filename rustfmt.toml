@@ -1,0 +1,11 @@
+# Make `rustfmt` match `cargo fmt` (which uses value in Cargo.toml)
+edition = "2024"
+
+# Group imports by module
+imports_granularity = "Crate"
+
+# Reorder imports alphabetically
+reorder_imports = true
+
+# Group std, external, and crate imports
+group_imports = "StdExternalCrate"
