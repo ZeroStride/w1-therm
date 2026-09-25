@@ -41,7 +41,7 @@ mod error {
     }
 }
 
-pub trait SensorValueSource {
+trait SensorValueSource {
     fn read(&self) -> Result<String, std::io::Error>;
 }
 
