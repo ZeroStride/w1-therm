@@ -1,6 +1,6 @@
 [package]
 name = "w1-therm"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reading from w1_therm compatible sensors under Linux"
 authors = ["Ezri Coniglio"]
 edition = "2024"
