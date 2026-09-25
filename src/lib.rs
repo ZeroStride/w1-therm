@@ -58,21 +58,21 @@ impl SensorValueSource for FileSensorValueSource {
 pub trait W1Therm {
     const SCALE: u32;
 
-    fn read_u16(&self) -> Result<u16, error::Error>;
+    fn read_raw(&self) -> Result<u16, error::Error>;
 
     fn read_f32(&self) -> Result<f32, error::Error> {
-        let value = self.read_u16()?;
+        let value = self.read_raw()?;
         Ok(value as f32 / u32::pow(10, Self::SCALE) as f32)
     }
 
     fn read_f64(&self) -> Result<f64, error::Error> {
-        let value = self.read_u16()?;
+        let value = self.read_raw()?;
         Ok(value as f64 / u32::pow(10, Self::SCALE) as f64)
     }
 
     #[cfg(feature = "rust_decimal")]
     fn read_dec(&self) -> Result<rust_decimal::Decimal, error::Error> {
-        let value = self.read_u16()?;
+        let value = self.read_raw()?;
         Ok(rust_decimal::Decimal::from_i128_with_scale(
             value as i128,
             Self::SCALE,
@@ -103,7 +103,7 @@ impl DS18B20 {
 impl W1Therm for DS18B20 {
     const SCALE: u32 = 3;
 
-    fn read_u16(&self) -> Result<u16, error::Error> {
+    fn read_raw(&self) -> Result<u16, error::Error> {
         let binding = self.source.read()?;
         let contents: Vec<_> = binding.split_ascii_whitespace().collect();
 
@@ -146,7 +146,7 @@ mod tests {
             "#},
             }),
         };
-        let read_result = ds18b20_crc_failure.read_u16();
+        let read_result = ds18b20_crc_failure.read_raw();
         assert!(read_result.is_err());
         assert!(read_result.unwrap_err().is_retryable());
 
@@ -158,7 +158,7 @@ mod tests {
             "#},
             }),
         };
-        let read_result = ds18b20_ok.read_u16();
+        let read_result = ds18b20_ok.read_raw();
         assert!(read_result.is_ok());
         assert_eq!(read_result.unwrap(), 26687);
 
