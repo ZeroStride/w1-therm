@@ -1,24 +1,38 @@
+//! Small wrapper around reading from 1-Wire temperature sensors under Linux.
+//!
+//! The goal was to split some work out from an internal project so it could be helpful
+//! to others, as well as get some experience publishing a crate.
+
+#![warn(missing_docs)]
+
 use std::{fs, path::PathBuf};
 
-mod error {
+/// Error structures for `w1-therm`
+pub mod error {
     use thiserror::Error;
 
+    /// Error.
     #[derive(Debug, Error)]
     pub enum Error {
+        /// An io::Error occurred while reading from the sensor.
         #[error(transparent)]
         IOError(std::io::Error),
 
+        /// A num::ParseIntError occured while parsing the sensor value.
         #[error(transparent)]
         ParseIntError(std::num::ParseIntError),
 
+        /// The CRC check for the value failed; the value should be read again.
         #[error("a CRC failure occurred while reading from the sensor")]
         CRCFailure,
 
+        /// Encountered a badly formatted string while reading from the w1-therm file.
         #[error("unexpected format error: {0}")]
         FormattingError(String),
     }
 
     impl Error {
+        /// Should the function which caused the error be retried?
         pub fn is_retryable(&self) -> bool {
             match self {
                 &Self::CRCFailure => true,
@@ -55,21 +69,32 @@ impl SensorValueSource for FileSensorValueSource {
     }
 }
 
+/// A value read from a w1_therm compatible sensor.
 pub trait W1Therm {
+    /// The scale of the integer read from the sensor.
+    ///
+    /// The actual value the sensor provides is: raw / 10^SCALE
     const SCALE: u32;
 
+    /// Read the raw, unscaled value of the sensor.
+    ///
+    /// This method is used by the trait to implement the other methods, and
+    /// is probably not what you want to be using.
     fn read_raw(&self) -> Result<u16, error::Error>;
 
+    /// Value of the sensor as an f32.
     fn read_f32(&self) -> Result<f32, error::Error> {
         let value = self.read_raw()?;
         Ok(value as f32 / u32::pow(10, Self::SCALE) as f32)
     }
 
+    /// Value of the sensor as an f64.
     fn read_f64(&self) -> Result<f64, error::Error> {
         let value = self.read_raw()?;
         Ok(value as f64 / u32::pow(10, Self::SCALE) as f64)
     }
 
+    /// Value of the sensor as a rust_decimal, using `from_i128_with_scale`.
     #[cfg(feature = "rust_decimal")]
     fn read_dec(&self) -> Result<rust_decimal::Decimal, error::Error> {
         let value = self.read_raw()?;
@@ -80,6 +105,7 @@ pub trait W1Therm {
     }
 }
 
+/// Implementation for the DS18B20.
 pub struct DS18B20 {
     pub(crate) source: Box<dyn SensorValueSource>,
 }
@@ -88,6 +114,13 @@ unsafe impl Send for DS18B20 {}
 unsafe impl Sync for DS18B20 {}
 
 impl DS18B20 {
+    // pub fn from_id(id: &str) -> Self {
+    //     let mut path = PathBuf::from("/sys/bus/w1/devices/");
+    //     path.push(format!("28-{id}"));
+    //     Self::new(path.to_str())
+    // }
+
+    /// Create with the path to the device, e.g. `/sys/bus/w1/devices/28-2403000db0b9`
     pub fn new(path: &str) -> Self {
         let mut path = PathBuf::from(path);
         if !path.ends_with("w1_slave") {
