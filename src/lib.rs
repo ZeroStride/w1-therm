@@ -8,11 +8,14 @@ mod error {
         #[error(transparent)]
         IOError(std::io::Error),
 
+        #[error(transparent)]
+        ParseIntError(std::num::ParseIntError),
+
         #[error("a CRC failure occurred while reading from the sensor")]
         CRCFailure,
 
-        #[error("an unknown error occurred while reading from the sensor")]
-        Unknown,
+        #[error("unexpected format error: {0}")]
+        FormattingError(String),
     }
 
     impl Error {
@@ -20,8 +23,20 @@ mod error {
             match self {
                 &Self::CRCFailure => true,
                 &Self::IOError(_) => false,
-                &Self::Unknown => false,
+                &Self::ParseIntError(_) => false,
+                &Self::FormattingError(_) => false,
             }
+        }
+    }
+    impl From<std::io::Error> for Error {
+        fn from(e: std::io::Error) -> Self {
+            Self::IOError(e)
+        }
+    }
+
+    impl From<std::num::ParseIntError> for Error {
+        fn from(e: std::num::ParseIntError) -> Self {
+            Self::ParseIntError(e)
         }
     }
 }
@@ -37,12 +52,6 @@ struct FileSensorValueSource {
 impl SensorValueSource for FileSensorValueSource {
     fn read(&self) -> Result<String, std::io::Error> {
         fs::read_to_string(self.path.as_path())
-    }
-}
-
-impl From<std::io::Error> for error::Error {
-    fn from(e: std::io::Error) -> Self {
-        Self::IOError(e)
     }
 }
 
@@ -104,8 +113,10 @@ impl W1Therm for DS18B20 {
 
         contents[21]
             .strip_prefix("t=")
-            .and_then(|w| w.parse::<u16>().ok())
-            .ok_or(error::Error::Unknown)
+            .ok_or(error::Error::FormattingError(
+                "token 't=' not found while reading value".to_string(),
+            ))
+            .and_then(|w| Ok(w.parse::<u16>()?))
     }
 }
 
