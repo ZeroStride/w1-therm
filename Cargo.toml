@@ -1,6 +1,6 @@
 [package]
 name = "w1-therm"
-version = "0.2.0"
+version = "0.3.0"
 description = "Reading from w1_therm compatible sensors under Linux"
 authors = ["Ezri Coniglio"]
 edition = "2024"
@@ -20,7 +20,6 @@ rust_decimal = { version = "1.43.0", default-features = false, optional = true }
 thiserror = "2.0.20"
 
 [dev-dependencies]
-indoc = "2.0.7"
 rust_decimal = { version = "1.43.0", default-features = false, features = ["macros"]}
 
 [features]

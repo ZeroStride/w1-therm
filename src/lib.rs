@@ -59,6 +59,16 @@ trait SensorValueSource {
     fn read(&self) -> Result<String, std::io::Error>;
 }
 
+struct StringSensorValueSource<'a> {
+    pub string: &'a str,
+}
+
+impl SensorValueSource for StringSensorValueSource<'_> {
+    fn read(&self) -> Result<String, std::io::Error> {
+        Ok(self.string.to_string())
+    }
+}
+
 struct FileSensorValueSource {
     path: PathBuf,
 }
@@ -131,6 +141,18 @@ impl DS18B20 {
             source: Box::new(FileSensorValueSource { path }),
         }
     }
+
+    /// Create a DS18B20 which always returns a reading of 0.
+    pub fn zero() -> Self {
+        DS18B20 {
+            source: Box::new(StringSensorValueSource {
+                string: r#"
+                ab 01 55 00 7f ff 0c 10 1d : crc=1d YES
+                ab 01 55 00 7f ff 0c 10 1d t=0
+            "#,
+            }),
+        }
+    }
 }
 
 impl W1Therm for DS18B20 {
@@ -155,28 +177,16 @@ impl W1Therm for DS18B20 {
 
 #[cfg(test)]
 mod tests {
-    use indoc::indoc;
-
     use super::*;
-
-    struct StringSensorValueSource<'a> {
-        pub string: &'a str,
-    }
-
-    impl SensorValueSource for StringSensorValueSource<'_> {
-        fn read(&self) -> Result<String, std::io::Error> {
-            Ok(self.string.to_string())
-        }
-    }
 
     #[test]
     fn ds18b20() {
         let ds18b20_crc_failure = DS18B20 {
             source: Box::new(StringSensorValueSource {
-                string: indoc! {r#"
+                string: r#"
                 ab 01 55 00 7f ff 0c 10 1d : crc=1d NO
                 ab 01 55 00 7f ff 0c 10 1d t=26687
-            "#},
+            "#,
             }),
         };
         let read_result = ds18b20_crc_failure.read_raw();
@@ -185,10 +195,10 @@ mod tests {
 
         let ds18b20_ok = DS18B20 {
             source: Box::new(StringSensorValueSource {
-                string: indoc! {r#"
+                string: r#"
                 ab 01 55 00 7f ff 0c 10 1d : crc=1d YES
                 ab 01 55 00 7f ff 0c 10 1d t=26687
-            "#},
+            "#,
             }),
         };
         let read_result = ds18b20_ok.read_raw();
@@ -200,5 +210,19 @@ mod tests {
 
         #[cfg(feature = "rust_decimal")]
         assert_eq!(ds18b20_ok.read_dec().unwrap(), rust_decimal::dec!(26.687));
+    }
+
+    #[test]
+    fn ds18b20_zero() {
+        let ds18b20_zero = DS18B20::zero();
+        let read_result = ds18b20_zero.read_raw();
+        assert!(read_result.is_ok());
+        assert_eq!(read_result.unwrap(), 0);
+
+        assert_eq!(ds18b20_zero.read_f32().unwrap(), 0.0);
+        assert_eq!(ds18b20_zero.read_f64().unwrap(), 0.0);
+
+        #[cfg(feature = "rust_decimal")]
+        assert_eq!(ds18b20_zero.read_dec().unwrap(), rust_decimal::dec!(0.0));
     }
 }
